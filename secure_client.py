@@ -62,6 +62,10 @@ def TLS_handshake_client(connection, server_ip=SERVER_IP, server_port=SERVER_POR
     #  * Return the symmetric key for use in further communications with the server
     # Make sure to use encode_message() on communications so the VPN knows which 
     # server to send them to
+    with connection:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.connect((SERVER_IP, SERVER_PORT))
+            certificate = sock.recv(1024).decode("utf-8")
     return 0
 
 print("client starting - connecting to VPN at IP", VPN_IP, "and port", VPN_PORT)
