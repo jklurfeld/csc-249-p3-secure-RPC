@@ -46,6 +46,11 @@ def encode_message(message):
     message = str(SERVER_IP) + '~IP~' +str(SERVER_PORT) + '~port~' + message
     return message
 
+# CLIENT HAS TO REQUEST CERTIFICATE FROM SERVER (THEY HAVE TO INITIATE IT)
+#   client sends "request TLS" to VPN with the header added (encode_message)
+#   VPN forwards message to server
+#   server sends back signed certificate to VPN, which forwards it back to the client
+
 def TLS_handshake_client(connection, server_ip=SERVER_IP, server_port=SERVER_PORT):
     ## Instructions ##
     # Fill this function in with the TLS handshake:
@@ -63,9 +68,23 @@ def TLS_handshake_client(connection, server_ip=SERVER_IP, server_port=SERVER_POR
     # Make sure to use encode_message() on communications so the VPN knows which 
     # server to send them to
     with connection:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            sock.connect((SERVER_IP, SERVER_PORT))
-            certificate = sock.recv(1024).decode("utf-8")
+        connection.sendall(bytes(encode_message("request TLS"), 'utf-8'))
+        certificate = connection.recv(1024).decode('utf-8')
+        print("received certificate", certificate, "from server")
+        certificate = cryptgraphy_simulator.verify_certificate(CA_public_key, certificate)
+        certificate = certificate.split(':')
+        ip = certificate[0]
+        port = certificate[1]
+        # TODO: verify that you're communicating with the port and IP specified in the certificate
+        key = certificate[2]
+        print(f"ip: {ip}, port: {port}, key: {key}")
+        symmetric_key = cryptgraphy_simulator.generate_symmetric_key()
+        encrypted_key = cryptgraphy_simulator.public_key_encrypt(key, symmetric_key)
+        connection.sendall(bytes(encode_message(encrypted_key), 'utf-8'))
+        print(f"sending encrypted key {encrypted_key} to server")
+        # with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        #     sock.connect((SERVER_IP, SERVER_PORT))
+        #     certificate = sock.recv(1024).decode("utf-8")
     return 0
 
 print("client starting - connecting to VPN at IP", VPN_IP, "and port", VPN_PORT)
@@ -79,5 +98,5 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     data = s.recv(1024).decode('utf-8')
 
 print(f"Received raw response: '{data}' [{len(data)} bytes]")
-print(f"Decoded message {cryptgraphy_simulator.tls_decode(data)} from server")
+print(f"Decoded message {cryptgraphy_simulator.tls_decode(symmetric_key, data)} from server")
 print("client is done!")

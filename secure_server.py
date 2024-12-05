@@ -28,7 +28,7 @@ SERVER_PORT = args.server_port  # Port to listen on (non-privileged ports are > 
 
 # Format and return a certificate containing the server's socket information and public key
 def format_certificate(public_key):
-    unsigned_certificate = '' # replace this line
+    unsigned_certificate = str(SERVER_IP) + ':' + str(SERVER_PORT) + ':' + str(public_key)
     print(f"Prepared the formatted unsigned certificate '{unsigned_certificate}'")
     return unsigned_certificate
 
@@ -62,7 +62,15 @@ def TLS_handshake_server(connection):
     #    * A signed certificate variable should be available as 'signed_certificate'
     #  * Receive an encrypted symmetric key from the client
     #  * Return the symmetric key for use in further communications with the client
-    return 0
+    with connection:
+        data = connection.recv(1024).decode('utf-8')
+        if data == "request TLS":
+            connection.sendall(bytes(signed_certificate, 'utf-8'))
+            print("sending certificate", signed_certificate, "to client")
+        symmetric_key = connection.recv(1024).decode('utf-8')
+        print(f"received encrypted symmetric key {symmetric_key} from client")
+        symmetric_key = cryptgraphy_simulator.private_key_decrypt(private_key, symmetric_key)
+    return symmetric_key
 
 def process_message(message):
     # Change this function to change the service your server provides
@@ -76,13 +84,13 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     conn, addr = s.accept()
     with conn:
         print(f"Connected established with {addr}")
-        symmetric_key = TLS_handshake_server(conn)
+        symmetric_key = TLS_handshake_server(conn)  
         while True:
             data = conn.recv(1024)
             if not data:
                 break
             print(f"Received client message: '{data!r}' [{len(data)} bytes]")
-            message = cryptgraphy_simulator.tls_decode(data.decode('utf-8'))
+            message = cryptgraphy_simulator.tls_decode(symmetric_key, data.decode('utf-8'))
             print(f"Decoded message '{message}' from client")
             response = process_message(message)
             print(f"Responding '{response}' to the client")

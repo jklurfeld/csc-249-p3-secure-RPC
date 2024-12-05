@@ -25,7 +25,8 @@ def private_key_decrypt(key, cyphertext):
     public_key = eval(cyphertext[2:cyphertext.index(')[')+1])
     if type(public_key) != tuple or type(public_key[0]) != int or type(public_key[1]) != int:
         raise AssertionError('"{}" does not have a properly formatted asymmetric key'.format(cyphertext))
-    if public_key[0]+key != public_key[1]:
+    print(public_key, type(public_key))
+    if int(public_key[0])+int(key) != public_key[1]:
         raise AssertionError("{} is not a private key matching public key {}".format(key, public_key))
     return cyphertext[cyphertext.index('[')+1:-1]
 
@@ -33,6 +34,8 @@ def private_key_decrypt(key, cyphertext):
 # if verification is successful, returns the unsigned certificate
 # if verification is unsuccessful, throws an AssertionError exception (catch it with a try/except!)
 def verify_certificate(public_key, certificate):
+    if type(public_key) == str:
+        public_key = eval(public_key)
     try:
         assert certificate[0] == 'D'
         return private_key_decrypt(public_key[0], 'E' + certificate[1:])
