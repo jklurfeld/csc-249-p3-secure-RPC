@@ -82,12 +82,12 @@ def TLS_handshake_client(connection, server_ip=SERVER_IP, server_port=SERVER_POR
         print(f"ip: {ip}, port: {port}, key: {key}")
         symmetric_key = cryptgraphy_simulator.generate_symmetric_key()
         encrypted_key = cryptgraphy_simulator.public_key_encrypt(key, symmetric_key)
-        connection.sendall(bytes(encode_message(encrypted_key), 'utf-8'))
+        connection.sendall(bytes(encrypted_key, 'utf-8'))
         print(f"sending encrypted key {encrypted_key} to server")
         # with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         #     sock.connect((SERVER_IP, SERVER_PORT))
         #     certificate = sock.recv(1024).decode("utf-8")
-    return 0
+    return symmetric_key
 
 print("Client starting - connecting to VPN at IP", VPN_IP, "and port", VPN_PORT)
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
