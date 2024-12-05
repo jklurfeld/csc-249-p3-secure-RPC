@@ -25,8 +25,7 @@ def private_key_decrypt(key, cyphertext):
     public_key = eval(cyphertext[2:cyphertext.index(')[')+1])
     if type(public_key) != tuple or type(public_key[0]) != int or type(public_key[1]) != int:
         raise AssertionError('"{}" does not have a properly formatted asymmetric key'.format(cyphertext))
-    print(public_key, type(public_key))
-    if int(public_key[0])+int(key) != public_key[1]:
+    if int(public_key[0])+int(key) != int(public_key[1]):
         raise AssertionError("{} is not a private key matching public key {}".format(key, public_key))
     return cyphertext[cyphertext.index('[')+1:-1]
 
@@ -53,10 +52,10 @@ def symmetric_encrypt(key, message):
 
 # use this to decrypt with a symmetric key
 def symmetric_decrypt(key, cyphertext):
-    if len(cyphertext) < 4 or cyphertext[:2] != 'E_' or cyphertext[2] not in '0123456789' or '[' not in cyphertext or cyphertext[-1] != ']':
+    if len(cyphertext) < 12 or cyphertext[:10] != 'symmetric_' or cyphertext[10] not in '0123456789' or '[' not in cyphertext or cyphertext[-1] != ']':
         raise AssertionError('"{}" is not formatted as an symmetric cyphertext'.format(cyphertext))
     try:
-        cyphertext_key = int(cyphertext[2:cyphertext.index('[')])
+        cyphertext_key = int(cyphertext[10:cyphertext.index('[')])
     except TypeError:
         raise AssertionError('"{}" does not have a properly formatted symmetric key'.format(cyphertext))
     if cyphertext_key != key:
