@@ -47,11 +47,6 @@ def encode_message(message):
     message = str(SERVER_IP) + '~IP~' +str(SERVER_PORT) + '~port~' + message
     return message
 
-# CLIENT HAS TO REQUEST CERTIFICATE FROM SERVER (THEY HAVE TO INITIATE IT)
-#   client sends "request TLS" to VPN with the header added (encode_message)
-#   VPN forwards message to server
-#   server sends back signed certificate to VPN, which forwards it back to the client
-
 def TLS_handshake_client(connection, server_ip=SERVER_IP, server_port=SERVER_PORT):
     ## Instructions ##
     # Fill this function in with the TLS handshake:
@@ -69,24 +64,22 @@ def TLS_handshake_client(connection, server_ip=SERVER_IP, server_port=SERVER_POR
     #  * Return the symmetric key for use in further communications with the server
     # Make sure to use encode_message() on the first message so the VPN knows which 
     # server to connect with
-    with connection:
-        connection.sendall(bytes(encode_message("request TLS"), 'utf-8'))
-        certificate = connection.recv(1024).decode('utf-8')
-        print("received certificate", certificate, "from server")
-        certificate = cryptgraphy_simulator.verify_certificate(CA_public_key, certificate)
-        certificate = certificate.split(':')
-        ip = certificate[0]
-        port = certificate[1]
-        # TODO: verify that you're communicating with the port and IP specified in the certificate
-        key = certificate[2]
-        print(f"ip: {ip}, port: {port}, key: {key}")
-        symmetric_key = cryptgraphy_simulator.generate_symmetric_key()
-        encrypted_key = cryptgraphy_simulator.public_key_encrypt(key, symmetric_key)
-        connection.sendall(bytes(encrypted_key, 'utf-8'))
-        print(f"sending encrypted key {encrypted_key} to server")
-        # with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        #     sock.connect((SERVER_IP, SERVER_PORT))
-        #     certificate = sock.recv(1024).decode("utf-8")
+    connection.sendall(bytes(encode_message("request TLS"), 'utf-8'))
+    certificate = connection.recv(1024).decode('utf-8')
+    print("received certificate", certificate, "from server")
+    certificate = cryptgraphy_simulator.verify_certificate(CA_public_key, certificate)
+    certificate = certificate.split(':')
+    ip = certificate[0]
+    port = certificate[1]
+    if port.__eq__(server_port) == False or ip != server_ip:
+        print(f"port: '{port}', server_port '{server_port}', ip: '{ip}', server_ip: '{server_ip}'")
+        print("Could not verify certificate. This is not the correct server")
+        return ''
+    key = certificate[2]
+    symmetric_key = cryptgraphy_simulator.generate_symmetric_key()
+    encrypted_key = cryptgraphy_simulator.public_key_encrypt(key, symmetric_key)
+    connection.sendall(bytes(encrypted_key, 'utf-8'))
+    print(f"sending encrypted key {encrypted_key} to server")
     return symmetric_key
 
 print("Client starting - connecting to VPN at IP", VPN_IP, "and port", VPN_PORT)

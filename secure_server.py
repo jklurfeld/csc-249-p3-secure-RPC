@@ -63,14 +63,13 @@ def TLS_handshake_server(connection):
     #    * A signed certificate variable should be available as 'signed_certificate'
     #  * Receive an encrypted symmetric key from the client
     #  * Decrypt and return the symmetric key for use in further communications with the client
-    with connection:
-        data = connection.recv(1024).decode('utf-8')
-        if data == "request TLS":
-            connection.sendall(bytes(signed_certificate, 'utf-8'))
-            print("sending certificate", signed_certificate, "to client")
-        symmetric_key = connection.recv(1024).decode('utf-8')
-        print(f"received encrypted symmetric key {symmetric_key} from client")
-        symmetric_key = cryptgraphy_simulator.private_key_decrypt(private_key, symmetric_key)
+    data = connection.recv(1024).decode('utf-8')
+    if data == "request TLS":
+        connection.sendall(bytes(signed_certificate, 'utf-8'))
+        print("sending certificate", signed_certificate, "to client")
+    symmetric_key = connection.recv(1024).decode('utf-8')
+    print(f"received encrypted symmetric key {symmetric_key} from client")
+    symmetric_key = cryptgraphy_simulator.private_key_decrypt(private_key, symmetric_key)
     return symmetric_key
 
 def process_message(message):
@@ -87,8 +86,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         print(f"Connected established with {addr}")
         symmetric_key = TLS_handshake_server(conn)
         print(f"TLS handshake complete: established symmetric key '{symmetric_key}', acknowledging to client")
-        msg = cryptgraphy_simulator.symmetric_encrypt(symmetric_key, f"Symmetric key '{symmetric_key}' received")
-        conn.sendall(bytes(msg, 'utf-8'))
+        conn.sendall(bytes(cryptgraphy_simulator.symmetric_encrypt(symmetric_key, f"Symmetric key '{symmetric_key}' received"), 'utf-8'))
         while True:
             data = conn.recv(1024)
             if not data:
